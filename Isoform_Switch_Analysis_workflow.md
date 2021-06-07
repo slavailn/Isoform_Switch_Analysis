@@ -33,6 +33,9 @@ Examine the results by looking into html report files. They can be opened in any
 The most relevant sections of the quality report are basic statistics telling the total number of the reads; distributions of base qualities; per base sequence content;
 GC content; over-represented sequences. The presence of adapters used in the library preparation process is evident from over-represented sequences report section. We will skip adapter trimming if no adapters are present.
 
+FastQC tutorial: https://www.youtube.com/watch?v=bz93ReOv87Y
+Site with many examples of sequencing QC problems: https://sequencing.qcfail.com/
+
 ### 2. Adapter trimming (if necessary)
 
 ```
@@ -43,6 +46,34 @@ trim_galore --illumina <FASTQ> # for Illumina Truseq adapters
 See Trim Galore help for other options.
 
 ### 3. Isoform quantification with RSEM.
+
+RSEM paper: https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-12-323
+RSEM tutorial: https://github.com/bli25broad/RSEM_tutorial
+
+1) First we will prepare the reference. RSEM works with a set of transcripts, that can be prepared using the reference genome and a GTF file with exon coordinates.
+
+An easy way to obtaine an annotated genome is to download one from Illumina iGENOME repository - https://support.illumina.com/sequencing/sequencing_software/igenome.html
+
+For example, get an Ensembl assembly of a human genome with wget
+
+```
+wget http://igenomes.illumina.com.s3-website-us-east-1.amazonaws.com/Homo_sapiens/Ensembl/GRCh37/Homo_sapiens_Ensembl_GRCh37.tar.gz
+
+```
+Untar and unzip the genome tarball. The GTF file is located in Annotation/Genes directory and the whole genome fasta file is found in Sequence/ sub-folder.
+
+To prepare the transcript reference run the following command:
+
+```
+mkdir ref
+rsem-prepare-reference --gtf <path/to/gtf> --bowtie2 </path/to/genome.fa> <ref/human_0>
+
+```
+This command assumes that we will use bowtie2 as internal aligner. The results will be saved in ref/ directory with the prefix human_0.
+
+
+
+
 
 
 
