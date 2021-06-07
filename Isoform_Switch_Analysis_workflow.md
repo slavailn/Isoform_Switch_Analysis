@@ -48,6 +48,7 @@ See Trim Galore help for other options.
 ### 3. Isoform quantification with RSEM.
 
 RSEM paper: https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-12-323
+
 RSEM tutorial: https://github.com/bli25broad/RSEM_tutorial
 
 1) First we will prepare the reference. RSEM works with a set of transcripts, that can be prepared using the reference genome and a GTF file with exon coordinates.
@@ -60,7 +61,15 @@ For example, get an Ensembl assembly of a human genome with wget
 wget http://igenomes.illumina.com.s3-website-us-east-1.amazonaws.com/Homo_sapiens/Ensembl/GRCh37/Homo_sapiens_Ensembl_GRCh37.tar.gz
 
 ```
-Untar and unzip the genome tarball. The GTF file is located in Annotation/Genes directory and the whole genome fasta file is found in Sequence/ sub-folder.
+Untar and unzip the genome tarball.
+
+```
+
+tar -xzvf Homo_sapiens_Ensembl_GRCh37.tar.gz
+
+```
+
+ The GTF file is located in Annotation/Genes directory and the whole genome fasta file is found in Sequence/ sub-folder.
 
 To prepare the transcript reference run the following command:
 
