@@ -1,4 +1,4 @@
-## Isoform Switch Aanalysis Workflow
+## Isoform Switch Analysis Workflow
 
 ### Project's goal: detect isoform switching events between conditions
 
