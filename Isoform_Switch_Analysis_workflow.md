@@ -69,16 +69,41 @@ tar -xzvf Homo_sapiens_Ensembl_GRCh37.tar.gz
 
 ```
 
- The GTF file is located in Annotation/Genes directory and the whole genome fasta file is found in Sequence/ sub-folder.
+The GTF file is located in Annotation/Genes/ directory and the whole genome fasta file is found in the Sequence/ sub-folder.
 
 To prepare the transcript reference run the following command:
 
 ```
 mkdir ref
-rsem-prepare-reference --gtf <path/to/gtf> --bowtie2 </path/to/genome.fa> <ref/human_0>
+rsem-prepare-reference --gtf <path/to/gtf> --bowtie2 </path/to/genome.fa> ref/
 
 ```
-This command assumes that we will use bowtie2 as internal aligner. The results will be saved in ref/ directory with the prefix human_0.
+This command assumes that we will use bowtie2 as internal aligner. The results will be saved in ref/ directory.
+
+Once the refernce is prepared, we can run RSEM:
+
+```
+rsem-calculate-expression -p 24 --bowtie2 --estimate-rspd --append-names --output-genome-bam <FASTQ> ../ref/human_0 <SAMPLE_NAME>
+
+```
+
+Interate over all of the fastq files in the directory and run RSEM isoform quantification.
+
+```
+#! /bin/bash
+
+dir=$1
+
+for file in $dir/*.fastq
+do
+    filename=`basename $file`
+    samplename=${filename%.*}
+    rsem-calculate-expression -p 24 --bowtie2 --estimate-rspd --append-names --output-genome-bam $file ../ref/human_0  $samplename
+
+done
+
+```
+
 
 
 
