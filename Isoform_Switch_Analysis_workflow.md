@@ -87,7 +87,7 @@ rsem-calculate-expression -p 24 --bowtie2 --estimate-rspd --append-names --outpu
 
 ```
 
-Interate over all of the fastq files in the directory and run RSEM isoform quantification.
+Iterate over all of the fastq files in the directory and run RSEM isoform quantification.
 
 ```
 #! /bin/bash
