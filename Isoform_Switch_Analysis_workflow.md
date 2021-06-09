@@ -103,6 +103,35 @@ do
 done
 
 ```
+NOTE! In one of the conda environments I encountered the a bowtie2 installation problem breaking RSEM run.
+The solution to the problem is described in the following Biostars post:
+https://www.biostars.org/p/494922/
+
+See the post content below:
+
+```
+
+$ conda create -n bttest -c bioconda bowtie2
+$ conda activate bttest
+$ bowtie2
+~/.conda/envs/bttest/bin/bowtie2-align-s: error while loading shared libraries: libtbb.so.2: cannot open shared object file: No such file or directory
+(ERR): Description of arguments failed!
+Exiting now ...
+
+```
+
+The solution is to downgrade the tbb version
+
+```
+$ conda install tbb=2020.2
+$ bowtie2 -h
+
+```
+
+
+
+
+
 
 
 
