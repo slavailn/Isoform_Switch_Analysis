@@ -1,5 +1,15 @@
 ## Isoform Switch Analysis Workflow
 
+### Software installation
+Use conda to install the following packages:
+
+```
+conda install -c bioconda fastqc
+conda install -c bioconda bowtie2
+conda install -c bioconda rsem
+
+```
+
 ### Project's goal: detect isoform switching events between conditions
 
 ### Workflow steps:
