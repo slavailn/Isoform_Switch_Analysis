@@ -5,8 +5,9 @@ Use conda to install the following packages:
 
 ```
 conda install -c bioconda fastqc
-conda install -c bioconda bowtie2
-conda install -c bioconda rsem
+conda install -c bioconda trim_galore
+conda install -c bioconda gffread
+conda install -c bioconda kallisto
 
 ```
 
@@ -55,13 +56,13 @@ trim_galore --illumina <FASTQ> # for Illumina Truseq adapters
 
 See Trim Galore help for other options.
 
-### 3. Isoform quantification with RSEM.
+### 3. Isoform quantification with Kallisto.
 
-RSEM paper: https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-12-323
+Kallisto paper: https://www.nature.com/articles/nbt.3519
 
-RSEM tutorial: https://github.com/bli25broad/RSEM_tutorial
+Kallisto tutorial: https://pachterlab.github.io/kallisto/starting
 
-1) First we will prepare the reference. RSEM works with a set of transcripts, that can be prepared using the reference genome and a GTF file with exon coordinates.
+1) First we will prepare the reference. Kallisto works with a set of transcripts, that can be prepared using the reference genome and a GTF file with exon coordinates.
 
 An easy way to obtaine an annotated genome is to download one from Illumina iGENOME repository - https://support.illumina.com/sequencing/sequencing_software/igenome.html
 
@@ -81,62 +82,161 @@ tar -xzvf Homo_sapiens_Ensembl_GRCh37.tar.gz
 
 The GTF file is located in Annotation/Genes/ directory and the whole genome fasta file is found in the Sequence/ sub-folder.
 
-To prepare the transcript reference run the following command:
+To prepare the transcript reference we will first extract the transcript sequences using gffread utility: http://ccb.jhu.edu/software/stringtie/gff.shtml
 
 ```
 mkdir ref
-rsem-prepare-reference --gtf <path/to/gtf> --bowtie2 </path/to/genome.fa> ref/
-
-```
-This command assumes that we will use bowtie2 as internal aligner. The results will be saved in ref/ directory.
-
-Once the refernce is prepared, we can run RSEM:
-
-```
-rsem-calculate-expression -p 24 --bowtie2 --estimate-rspd --append-names --output-genome-bam <FASTQ> ../ref/human_0 <SAMPLE_NAME>
+gffread genes.gtf -g <Genome.fasta> -w <transcripts.fasta>
+# Now create kallisto index, we will use default 31 nt k-mer length.
+kallisto index -i <transcripts.idx> <transcripts.fa>
 
 ```
 
-Iterate over all of the fastq files in the directory and run RSEM isoform quantification.
+Once the reference index is prepared, we can run quantify transcript abundances with kalliso:
+
+```
+kallisto quant -i </path/to/index> \ # path to index file (.idx) 
+               -o <out_dir> \ path to output directory 
+			   -b 100 \ # number of bootstrap samples
+			   -bias \ # perform sequence bias correction
+ 			   --single \ # quantify single end reads
+			   -l 300 \ # estimated average fragment length
+			   -s 20 \ # estimated standard deviation fragment length
+			   <FASTQ> # sample fastq
+
+```
+
+Iterate over all of the fastq files in the directory and run Kallisto isoform quantification.
 
 ```
 #! /bin/bash
 
-dir=$1
+# Provide path to directory with fastq files as the first argument
+# and path to kallisto index (.idx) file as the second argument.
+
+dir=$1 # path to directory with fastq files 
+idx=$2 # path kallisto index file
 
 for file in $dir/*.fastq
 do
     filename=`basename $file`
     samplename=${filename%.*}
-    rsem-calculate-expression -p 24 --bowtie2 --estimate-rspd --append-names --output-genome-bam $file ../ref/human_0  $samplename
+    echo -e "#------ Processing $samplename ------- #"
+    kallisto quant -t 20 -i $2 -o $samplename -b 100 -bias --single -l 300 -s 20 $file
 
 done
 
-```
-NOTE! In one of the conda environments I encountered the a bowtie2 installation problem breaking RSEM run.
-The solution to the problem is described in the following Biostars post:
-https://www.biostars.org/p/494922/
-
-See the post content below:
+echo -e "ALL FILES FINISHED!"
 
 ```
 
-$ conda create -n bttest -c bioconda bowtie2
-$ conda activate bttest
-$ bowtie2
-~/.conda/envs/bttest/bin/bowtie2-align-s: error while loading shared libraries: libtbb.so.2: cannot open shared object file: No such file or directory
-(ERR): Description of arguments failed!
-Exiting now ...
+Kallisto will generate a folder with the output files for each of the samples. 
+The folder contains 2 files with transcript abundances and a run info json file.
+
+The tab delimited .tsv file has colums that correspond to transcrip ids, transcript length (actual and estimated), estimated counts and transcripts per million (TPM).
+target_id       length  eff_length      est_counts      tpm
+ENST00000456328 1657    1358    0       0
+ENST00000515242 1653    1354    0       0
+ENST00000518655 1483    1184    0       0
+ENST00000450305 632     333     0       0
+ENST00000541675 1416    1117    383.017 29.2701
+ENST00000423562 1669    1370    96.199  5.99389
+ENST00000438504 1783    1484    0       0
+ENST00000488147 1351    1052    0       0
+ENST00000538476 1583    1284    0       0
+
+### 4. Detect, visualize, and annotate isoform switching events with IsoSwitchAnalyzeR
+
+Follow the R workflow as shown below. 
+The transcript abundances that serve as input into IsoformSwicthAnalyzeR were obtained using kallisto and saved in **kallisto_results** directory.
+
+```
+library(IsoformSwitchAnalyzeR)
+
+setwd("<path/to/project_dir>")
+
+### This example is based on comparing CT_18 and CT_DMSO experimental groups.
+
+### Import Kallisto isoform data
+setwd("kallisto_results/")
+list.files()
+kallisto_files <- list.files(".", pattern = "tsv", recursive = T)
+kallisto_files
+
+# [1] "CT_18_1/abundance.tsv"   "CT_18_2/abundance.tsv"   "CT_18_3/abundance.tsv"  
+# [4] "CT_DMSO_1/abundance.tsv" "CT_DMSO_2/abundance.tsv" "CT_DMSO_3/abundance.tsv"
+
+kallistoQuant <- importIsoformExpression(
+  sampleVector = kallisto_files,
+  addIsofomIdAsColumn = TRUE,
+  interLibNormTxPM = TRUE,
+  normalizationMethod = 'TMM',
+  showProgress = TRUE
+  
+)
+
+kallistoQuant
+setwd("../")
+list.files()
+save(kallistoQuant, file="RData_objects/kallistoQuant.RData")
+
+### Create design matrix
+colnames(kallistoQuant$abundance)
+conditions <- c("CT_18", "CT_18", "CT_18", "CT_DMSO", 
+                "CT_DMSO", "CT_DMSO") 
+conditions
+
+myDesign <- data.frame(
+  sampleID = colnames(kallistoQuant$abundance)[-1],
+  condition = conditions)
+myDesign
+
+### Create isoformSwitchList object
+aSwitchList <- importRdata(
+  isoformCountMatrix   = kallistoQuant$counts, # counts for statistical analysis
+  isoformRepExpression = kallistoQuant$abundance, # abundances for effect size calculations 
+  designMatrix         = myDesign, # design matrix
+  isoformExonAnnoation = "transcript_annot/genes.gtf", # gtf file used to generate transcripts
+  isoformNtFasta       = "transcript_annot/transcripts.fa", # fasta file with transcript sequences
+  showProgress = T
+)
+
+aSwitchList
+save(kallistoQuant, file="RData_objects/kallistoQuant.RData")
+
+# run the first part of the isoform switch analysis workflow which filters for 
+# non-expressed genes/isoforms, identifies isoform switches, 
+# annotates open reading frames (ORF), switches with and extracts both 
+# the nucleotide and peptide (amino acid) sequences and output them as 
+# two separate fasta files 
+
+## Prefilter genes with low expression and remove single isoform genes
+aSwitchListFiltered <- preFilter(
+  switchAnalyzeRlist = aSwitchList,
+  geneExpressionCutoff = 1,
+  isoformExpressionCutoff = 0,
+  removeSingleIsoformGenes = TRUE
+)
+
+IsoSwitchList <- isoformSwitchAnalysisPart1(
+  switchAnalyzeRlist   = aSwitchListFiltered,
+  outputSequences = TRUE, # output sequences for annotation 
+  prepareForWebServers = TRUE  # for sequence analysis on web servers
+)
+
+# Save the results summary
+switchSummary <- extractSwitchSummary( IsoSwitchList )
+switchSummary
+write.table(switchSummary, file = "switch_summary.csv",
+            sep = ",", col.names = T, row.names = F)
+save(IsoSwitchList, file="IsoSwitchList_part1_compleleted.RData")
 
 ```
 
-The solution is to downgrade the tbb version
 
-```
-$ conda install tbb=2020.2
-$ bowtie2 -h
 
-```
+
+
 
 
 
