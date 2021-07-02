@@ -134,6 +134,8 @@ Kallisto will generate a folder with the output files for each of the samples.
 The folder contains 2 files with transcript abundances and a run info json file.
 
 The tab delimited .tsv file has colums that correspond to transcrip ids, transcript length (actual and estimated), estimated counts and transcripts per million (TPM).
+
+```
 target_id       length  eff_length      est_counts      tpm
 ENST00000456328 1657    1358    0       0
 ENST00000515242 1653    1354    0       0
@@ -144,6 +146,7 @@ ENST00000423562 1669    1370    96.199  5.99389
 ENST00000438504 1783    1484    0       0
 ENST00000488147 1351    1052    0       0
 ENST00000538476 1583    1284    0       0
+```
 
 ### 4. Detect, visualize, and annotate isoform switching events with IsoSwitchAnalyzeR
 
