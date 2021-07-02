@@ -17,7 +17,7 @@ conda install -c bioconda kallisto
 
 1. Initial quality control (FastQC https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
 2. Adapter and quality trimming, if deemed necessary (Trim Galore! https://www.bioinformatics.babraham.ac.uk/projects/trim_galore/)
-3. Isoform quantification (RSEM https://deweylab.github.io/RSEM/)
+3. Isoform quantification (Kallisto https://pachterlab.github.io/kallisto/)
 4. Detection of alternative splicing and isoform switch events (IsoformSwicthAnalyzeR https://www.bioconductor.org/packages/release/bioc/html/IsoformSwitchAnalyzeR.html)
 
 ### 1. Initial quality control
