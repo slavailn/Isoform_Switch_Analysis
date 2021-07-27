@@ -234,6 +234,100 @@ write.table(switchSummary, file = "switch_summary.csv",
             sep = ",", col.names = T, row.names = F)
 save(IsoSwitchList, file="IsoSwitchList_part1_compleleted.RData")
 
+## IsoSwitchAnalyzer Part II
+# Analyze coding potential using CPC2.0 with default options,
+# save the results as a tab delimited file
+# CPC server: http://cpc2.gao-lab.org/
+
+# Analyze PFAM domains (hmmscan from webserver with default settings)
+# hmmscan server: https://www.ebi.ac.uk/Tools/hmmer/search/hmmscan 
+
+# Alternatively install PFAM scan locally using conda:
+```
+conda install -c bioconda pfam_scan
+```
+and run as follows:
+```
+pfam_scan.pl -cpu <n_cpu> -fasta <isoform_AA_fasta> -dir <path/to/pfam_database> -outfile <pfam_result.txt>
+```
+
+# Detect disordered regions (https://iupred2a.elte.hu/plot_new) with
+# default settings
+
+# Predict signal peptides - SignalP v.5.0 
+# http://www.cbs.dtu.dk/services/SignalP/
+
+# Alternatively install signalP locally and run as follows:
+```
+~/programs/signalp-4.1/signalp -f summary <isoform_AA_fasta> > <results.txt>
+```
+
+load("IsoSwitchList_part1_completed.RData")
+IsoSwitchList
+
+IsoSwitchList <- isoformSwitchAnalysisPart2(
+  switchAnalyzeRlist        = IsoSwitchList,
+  codingCutoff              = 0.5, # coding cutoff for CPAT with human genome 
+  n                         = 20,    # if plotting was enabled, it would only output the top 10 switches
+  removeNoncodinORFs        = TRUE,  # Because ORF was predicted de novo
+  pathToCPC2resultFile      = "path/to/cpc_result",
+  pathToPFAMresultFile      = "path/to/pfam_result",
+  pathToIUPred2AresultFile  = "path/to/iupred_result",
+  pathToSignalPresultFile   = "path/to/signalp_result",
+  outputPlots               = TRUE)
+
+# Save intermediate data object after time consuming step
+save(IsoSwitchList, file="IsoSwitchList_part2_completed.RData")
+
+# List of functional consequences to analyze.
+# These are default options.
+consequences <- c('intron_retention','coding_potential',
+                  'ORF_seq_similarity',
+                  'NMD_status',
+                  'domains_identified',
+                  'signal_peptide_identified') 
+
+# Analyze switch consequences
+SwitchListAnalyzed <- analyzeSwitchConsequences(
+  IsoSwitchList,
+  consequencesToAnalyze = consequences,
+  alpha = 0.05,
+  dIFcutoff = 0.1,
+  onlySigIsoforms = T, # conservative cutoff - compensatory isform changes must be significant 
+  showProgress = T)
+# Save the object with completed analysis
+save(SwitchListAnalyzed, file = "SwitchListAnalyzed_full.RData")
+
+# Summary of switches with functional consequences
+cons_summary <- extractSwitchSummary(SwitchListAnalyzed, dIFcutoff = 0.1, 
+                                      filterForConsequences = TRUE)
+write.csv(cons_summary, "consequences_summary.csv")
+
+# Extract all genes ranked by q-value
+sig_switches <- extractTopSwitches(SwitchListAnalyzed, 
+                    filterForConsequences = TRUE, # those with functional consequences
+                    n = NA, 
+                    sortByQvals = TRUE)
+write.csv(sig_switches, "sig_switches.csv", row.names = F)
+
+# Plot individual gene
+switchPlot(SwitchListAnalyzed, gene = <gene_name>)
+
+# Plot all significant genes with functional consequences
+switchPlotTopSwitches(
+  switchAnalyzeRlist = SwitchListAnalyzed, 
+  n = Inf, # Set to Inf for all
+  filterForConsequences = TRUE,
+  fileType = "pdf",  # alternative is "png"
+  pathToOutput = "."
+)
+
+# Save all of the data at isoform level
+write.csv(SwitchListAnalyzed$isoformFeatures, "all_isoform_data.csv",
+          row.names = F)
+
+
+
 ```
 
 
